@@ -90,9 +90,9 @@ int main()
 	}
 
 	// Read number of words and words
-	int word_count;
-	fin >> word_count;
-	for (int i = 1; i <= word_count; ++i) {
+	int words_count;
+	fin >> words_count;
+	for (int i = 1; i <= words_count; ++i) {
 		std::string word;
 		fin >> word;
 		fout << (dfa.AcceptWord(word) ? "DA\n" : "NU\n");
@@ -100,6 +100,5 @@ int main()
 
 	fin.close();
 	fout.close();
-
 	return 0;
 }
