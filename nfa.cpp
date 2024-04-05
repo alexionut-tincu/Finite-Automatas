@@ -1,47 +1,45 @@
 #include <fstream>
-#include <vector>
+#include <set>
 #include <string>
 #include <unordered_map>
-#include <set>
+#include <vector>
 
 struct NFA {
+	int states_count;
+	std::set<int> states;
 	std::unordered_map<int, std::unordered_map<char, std::vector<int>>>
 		transition_function;
-	std::unordered_map<int, int> states;
-	std::vector<bool> final_states;
+	std::set<int> final_states;
 	int init_state;
 
-	NFA(const int states_count) : final_states(states_count, false) {};
+	NFA(const int states_count) : states_count(states_count) {};
 
-	void AddState(const int alias, const int state)
+	void AddState(const int state)
 	{
-		states[alias] = state;
+		states.insert(state);
 	}
 
-	void AddTransition(const int start_state_alias,
+	void AddTransition(const int start_state,
 			   const char letter,
-			   const int end_state_alias)
+			   const int end_state)
 	{
-		int start_state = states[start_state_alias];
-		int end_state = states[end_state_alias];
 		transition_function[start_state][letter].push_back(end_state);
 	}
 
-	void SetInitState(const int state_alias)
+	void SetInitState(const int state)
 	{
-		int state = states[state_alias];
 		init_state = state;
 	}
 
-	void SetFinalState(const int state_alias)
+	void SetFinalState(const int state)
 	{
-		int state = states[state_alias];
-		final_states[state] = true;
+		final_states.insert(state);
 	}
 
 	bool AcceptWord(const std::string &word)
 	{
 		std::set<int> current_states = {init_state};
+		
 		for (char letter : word) {
 			std::set<int> next_states;
 			for(int state : current_states) {
@@ -54,15 +52,50 @@ struct NFA {
 			current_states = next_states;
 		}
 		for (int state : current_states) {
-			if (final_states[state] == true) {
+			if (final_states.count(state) > 0) {
 				return true;
 			}
 		}
 		return false;
-	}	
+	}
+
+	std::vector<int> DFS(int current_state, const std::string &word, int index, std::vector<int> path)
+	{
+		path.push_back(current_state);
+
+		if (index == word.size()) {
+			if (final_states.count(current_state) > 0) {
+				return path;
+			}
+		} else if (transition_function.count(current_state) > 0) {
+			for (int next_state : transition_function[current_state][word[index]]) {
+				std::vector<int> result = DFS(next_state, word, index + 1, path);
+				if(result.empty() == false) {
+					return result;
+				}
+			}
+		}
+
+		return {};
+	}
+
+	std::vector<int> GetPath(const std::string &word)
+	{
+		return DFS(init_state, word, 0, {});
+	}
+
+	void PrintPath(const std::string &word, std::ofstream &fout)
+	{
+		std::vector<int> path = GetPath(word);
+
+		for (int i = 0; i < path.size() - 1; ++i) {
+			fout << path[i] << " -> ";
+		}
+		fout << path[path.size() - 1] << std::endl;
+	}
 };
 
-int main()
+int main(int argc, char *argv[])
 {
 	std::ifstream fin("input.txt");
 	std::ofstream fout("output.txt");
@@ -71,43 +104,53 @@ int main()
 	int states_count;
 	fin >> states_count;
 	NFA nfa(states_count);
-	for (int i = 1; i <= states_count; ++i) {
-		int state_alias;
-		fin >> state_alias;
-		nfa.AddState(state_alias, i);
+	for (int i = 0; i < states_count; ++i) {
+		int state;
+		fin >> state;
+		nfa.AddState(state);
 	}
 
 	// Read transitions count and transitions
 	int transitions_count;
 	fin >> transitions_count;
-	for (int i = 1; i <= transitions_count; ++i) {
-		int start_state_alias, end_state_alias;
+	for (int i = 0; i < transitions_count; ++i) {
+		int start_state, end_state;
 		char letter;
-		fin >> start_state_alias >> letter >> end_state_alias;
-		nfa.AddTransition(start_state_alias, letter, end_state_alias);
+		fin >> start_state >> end_state >> letter;
+		nfa.AddTransition(start_state, letter, end_state);
 	}
 
 	// Read init state
-	int init_state_alias;
-	fin >> init_state_alias;
-	nfa.SetInitState(init_state_alias);
+	int init_state;
+	fin >> init_state;
+	nfa.SetInitState(init_state);
 
 	// Read final states count and final states
 	int final_states_count;
 	fin >> final_states_count;
-	for (int i = 1; i <= final_states_count; ++i) {
-		int final_state_alias;
-		fin >> final_state_alias;
-		nfa.SetFinalState(final_state_alias);
+	for (int i = 0; i < final_states_count; ++i) {
+		int final_state;
+		fin >> final_state;
+		nfa.SetFinalState(final_state);
 	}
 
 	// Read number of words and words
 	int words_count;
 	fin >> words_count;
-	for (int i = 1; i <= words_count; ++i) {
+	for (int i = 0; i < words_count; ++i) {
 		std::string word;
 		fin >> word;
-		fout << (nfa.AcceptWord(word) ? "DA\n" : "NU\n");
+		if (argc == 1) {
+			fout << (nfa.AcceptWord(word) ? "DA\n" : "NU\n");
+		}
+		else {
+			if (nfa.AcceptWord(word) == true) {
+				nfa.PrintPath(word, fout);
+			}
+			else {
+				fout << "NU\n";
+			}
+		}
 	}
 
 	fin.close();
