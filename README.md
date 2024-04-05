@@ -19,7 +19,7 @@ By default, they will use an `input.txt` and an `output.txt` file for I/O, in th
 
 For `nfa.cpp`, any command-line argument can be passed to get the first found path for the word, if accepted.
 
-By default, `lnfa.cpp` will use the character '.' as lambda. This can be changed in the defines.
+By default, `lambda-nfa.cpp` will use the character '.' as lambda. This can be changed in the defines.
 
 The input file should follow this structure:
 
